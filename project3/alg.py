@@ -24,9 +24,15 @@ def dist_to_closest_obs(x, y):
     returns: dist: The distance to the closest obstacle.
     """
     ########## TODO ##########
+    
     dist = 0.0
-
-
+    distances = []
+    for i in range(len(OBS_CENTER)):
+        dist_center = np.sqrt((x - OBS_CENTER[i][0]) ** 2 + (y - OBS_CENTER[i][1]) ** 2)
+        dist_edge = dist_center - OBS_RADIUS[i] - SPH_RADIUS
+        distances.append(dist_edge)
+    dist = min(distances)
+    
     ##########################
     return dist
 
@@ -43,8 +49,16 @@ def cal_weights(particles, obv, sigma=0.05):
                       Type: numpy.ndarray of shape (# of particles,)
     """
     ########## TODO ##########
-    weights = None
-
+    fk_x, fk_y = FK_Solver.forward_kinematics_2d(obv)
+    weights = np.zeros(len(particles))
+    for i, (xi, yi, thetai) in enumerate(particles):
+        cos_t, sin_t = np.cos(thetai), np.sin(thetai)
+        world_x = xi = cos_t * fk_x - sin_t * fk_y
+        world_y = yi = sin_t * fk_x + cos_t * fk_y
+        di = dist_to_closest_obs(world_x, world_y)
+        weights[i] = scipy.stats.norm.pdf(di, loc=0, scale=sigma)
+    
+    weights = weights / weights.sum() # normalize the weights
 
     ##########################
     return weights
@@ -60,9 +74,9 @@ def most_likely_particle(particles, obv):
                       Type: int
     """
     ########## TODO ##########
-    idx = 0
-
-
+    weights = cal_weights(particles, obv)
+    idx = int(np.argmax(weights))
+    
     ##########################
     return idx
 
